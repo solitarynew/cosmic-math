@@ -5,6 +5,18 @@ import { generateParticles } from '../utils/math';
 import { ShapeType } from '../types';
 import { PARTICLE_COUNT, TRANSITION_SPEED } from '../constants';
 
+// Fix for TypeScript not recognizing R3F intrinsic elements
+declare global {
+  namespace JSX {
+    interface IntrinsicElements {
+      points: any;
+      bufferGeometry: any;
+      bufferAttribute: any;
+      pointsMaterial: any;
+    }
+  }
+}
+
 interface ParticlesProps {
   shape: ShapeType;
   color: string;

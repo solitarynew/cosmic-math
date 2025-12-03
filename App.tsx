@@ -10,6 +10,15 @@ import GestureHandler from './components/GestureHandler';
 import { SHAPE_SEQUENCE, AUTO_SWITCH_INTERVAL } from './constants';
 import { ShapeConfig, ShapeType } from './types';
 
+// Fix for TypeScript not recognizing R3F intrinsic elements
+declare global {
+  namespace JSX {
+    interface IntrinsicElements {
+      color: any;
+    }
+  }
+}
+
 // Camera controller with smooth zoom and gesture support
 const CameraController: React.FC<{ targetZ: number, zoomFactor: number }> = ({ targetZ, zoomFactor }) => {
   useFrame((state) => {
@@ -73,6 +82,7 @@ const App: React.FC = () => {
       <GestureHandler 
         isActive={gestureActive}
         onZoomChange={setGestureZoom}
+        onRotateChange={(x, y) => { /* Placeholder for rotation logic */ }}
       />
       
       <Canvas

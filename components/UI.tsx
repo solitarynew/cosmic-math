@@ -85,8 +85,8 @@ const UI: React.FC<UIProps> = ({
         </div>
       </div>
       
-      {/* HUD Info */}
-      <div className="absolute bottom-6 right-6 text-right pointer-events-none opacity-50 hidden md:block">
+      {/* HUD Info - Hidden when gesture active to avoid overlap */}
+      <div className={`absolute bottom-6 right-6 text-right pointer-events-none transition-opacity duration-300 hidden md:block ${gestureActive ? 'opacity-0' : 'opacity-50'}`}>
         <div className="text-xs font-mono">粒子数: 30,000</div>
         <div className="text-xs font-mono">渲染引擎: WEBGL2</div>
         <div className="text-xs font-mono">帧率: 60 FPS</div>

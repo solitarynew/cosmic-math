@@ -4,10 +4,11 @@ import { Scan, AlertCircle } from 'lucide-react';
 
 interface GestureHandlerProps {
   onZoomChange: (zoom: number) => void;
+  onRotateChange: (x: number, y: number) => void;
   isActive: boolean;
 }
 
-const GestureHandler: React.FC<GestureHandlerProps> = ({ onZoomChange, isActive }) => {
+const GestureHandler: React.FC<GestureHandlerProps> = ({ onZoomChange, onRotateChange, isActive }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isLoaded, setIsLoaded] = useState(false);
@@ -17,6 +18,7 @@ const GestureHandler: React.FC<GestureHandlerProps> = ({ onZoomChange, isActive 
   
   // Smoothing variables
   const lastZoomRef = useRef(1);
+  const lastRotRef = useRef({ x: 0, y: 0 });
 
   useEffect(() => {
     if (!isActive) {
@@ -80,13 +82,13 @@ const GestureHandler: React.FC<GestureHandlerProps> = ({ onZoomChange, isActive 
       // Draw minimal HUD
       if (result.landmarks && result.landmarks.length > 0) {
         const landmarks = result.landmarks[0];
+        
+        // --- 1. Zoom Control (Thumb to Index) ---
         const thumbTip = landmarks[4];
         const indexTip = landmarks[8];
-        
-        // Calculate distance in normalized coordinates (approx)
         const distance = Math.hypot(thumbTip.x - indexTip.x, thumbTip.y - indexTip.y);
         
-        // Draw points
+        // Draw Pinch Line
         const w = canvasRef.current.width;
         const h = canvasRef.current.height;
         
@@ -104,22 +106,38 @@ const GestureHandler: React.FC<GestureHandlerProps> = ({ onZoomChange, isActive 
         ctx.fill();
 
         // Map distance to zoom
-        // Distance roughly 0.05 (closed) to 0.3 (open)
-        // Map to 0.5x to 2.0x
-        let targetZoom = 1;
-        // Simple linear mapping
-        // 0.05 -> 0.5 (Zoom out / Far)
-        // 0.25 -> 2.0 (Zoom in / Close)
         const minD = 0.05;
         const maxD = 0.25;
         const clampedD = Math.max(minD, Math.min(maxD, distance));
         const t = (clampedD - minD) / (maxD - minD); // 0 to 1
-        
-        targetZoom = 0.5 + t * 2.0;
+        const targetZoom = 0.5 + t * 2.0;
 
-        // Smooth output
         lastZoomRef.current = lastZoomRef.current * 0.9 + targetZoom * 0.1;
         onZoomChange(lastZoomRef.current);
+
+        // --- 2. Rotation Control (Hand Centroid) ---
+        // Use Wrist(0) and Middle Finger MCP(9) to estimate palm center
+        const wrist = landmarks[0];
+        const middleMcp = landmarks[9];
+        const centerX = (wrist.x + middleMcp.x) / 2;
+        const centerY = (wrist.y + middleMcp.y) / 2;
+
+        // Draw Center Point
+        ctx.fillStyle = '#ff00ff';
+        ctx.beginPath();
+        ctx.arc(centerX * w, centerY * h, 6, 0, 2 * Math.PI);
+        ctx.fill();
+
+        // Calculate offset from screen center (0.5, 0.5)
+        // Invert X because video is mirrored
+        // Screen coords: 0,0 is top-left
+        const offsetX = (centerX - 0.5) * 2; // -1 to 1
+        const offsetY = (centerY - 0.5) * 2; // -1 to 1
+
+        lastRotRef.current.x = lastRotRef.current.x * 0.9 + offsetX * 0.1;
+        lastRotRef.current.y = lastRotRef.current.y * 0.9 + offsetY * 0.1;
+        
+        onRotateChange(lastRotRef.current.x, lastRotRef.current.y);
       }
     }
 
@@ -129,7 +147,7 @@ const GestureHandler: React.FC<GestureHandlerProps> = ({ onZoomChange, isActive 
   if (!isActive) return null;
 
   return (
-    <div className="absolute bottom-6 left-6 z-50 rounded-lg overflow-hidden border border-white/20 bg-black/50 backdrop-blur-md shadow-2xl transition-all duration-500 animate-fade-in-up">
+    <div className="absolute bottom-6 right-6 z-50 rounded-lg overflow-hidden border border-white/20 bg-black/50 backdrop-blur-md shadow-2xl transition-all duration-500 animate-fade-in-up">
       {error ? (
         <div className="p-4 flex items-center gap-2 text-red-400 text-xs">
           <AlertCircle size={16} />
@@ -163,8 +181,8 @@ const GestureHandler: React.FC<GestureHandlerProps> = ({ onZoomChange, isActive 
              </div>
           )}
           {isLoaded && (
-             <div className="absolute bottom-2 left-0 w-full text-center">
-               <span className="text-[10px] text-white/70 bg-black/40 px-2 py-1 rounded">捏合手指缩放</span>
+             <div className="absolute bottom-2 left-0 w-full text-center flex flex-col gap-0.5">
+               <span className="text-[9px] text-white/70 bg-black/40 px-2 py-0.5 rounded inline-block mx-auto">捏合: 缩放 | 移动: 旋转</span>
              </div>
           )}
         </div>
