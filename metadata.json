@@ -1,0 +1,7 @@
+{
+  "name": "宇宙数学可视化",
+  "description": "高性能3D粒子系统，可视化科赫雪花、心形线、奇异吸引子等复杂数学曲线，带有泛光后期处理效果。",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
